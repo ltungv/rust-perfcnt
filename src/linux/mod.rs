@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io;
 use std::io::{Error, Read};
 use std::mem;
+use std::os::fd::{AsFd, BorrowedFd};
 use std::os::unix::io::FromRawFd;
 use std::ptr;
 use std::slice;
@@ -40,7 +41,7 @@ fn perf_event_open(
             pid,
             cpu,
             group_fd,
-            flags
+            flags,
         ) as isize
     }
 }
@@ -234,7 +235,9 @@ impl PerfCounterBuilderLinux {
 
     /// Instantiate a H/W performance counter using a hardware event as described in Intels SDM.
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    pub fn from_intel_event_description(counter: &x86::perfcnt::intel::EventDescription) -> PerfCounterBuilderLinux {
+    pub fn from_intel_event_description(
+        counter: &x86::perfcnt::intel::EventDescription,
+    ) -> PerfCounterBuilderLinux {
         use x86::perfcnt::intel::Tuple;
         let mut pc: PerfCounterBuilderLinux = Default::default();
         let mut config: u64 = 0;
@@ -792,6 +795,13 @@ impl<'a> AbstractPerfCounter for PerfCounter {
     }
 }
 
+#[cfg(unix)]
+impl AsFd for PerfCounter {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.file.as_fd()
+    }
+}
+
 pub struct SamplingPerfCounter {
     pc: PerfCounter,
     map: mmap::MemoryMap,
@@ -915,11 +925,7 @@ impl LostRecord {
         let id: u64 = read(ptr, 8);
         let lost: u64 = read(ptr, 16);
 
-        LostRecord {
-            header,
-            id,
-            lost,
-        }
+        LostRecord { header, id, lost }
     }
 }
 
