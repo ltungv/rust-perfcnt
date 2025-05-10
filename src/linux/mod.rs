@@ -762,6 +762,42 @@ impl PerfCounter {
             Ok(value)
         }
     }
+
+    pub fn reset_group(&self) -> Result<(), io::Error> {
+        let ret = ioctl(
+            self.fd,
+            perf_event::PERF_EVENT_IOC_RESET,
+            perf_event::PERF_IOC_FLAG_GROUP as i32,
+        );
+        if ret == -1 {
+            return Err(Error::last_os_error());
+        }
+        Ok(())
+    }
+
+    pub fn start_group(&self) -> Result<(), io::Error> {
+        let ret = ioctl(
+            self.fd,
+            perf_event::PERF_EVENT_IOC_ENABLE,
+            perf_event::PERF_IOC_FLAG_GROUP as i32,
+        );
+        if ret == -1 {
+            return Err(Error::last_os_error());
+        }
+        Ok(())
+    }
+
+    pub fn stop_group(&self) -> Result<(), io::Error> {
+        let ret = ioctl(
+            self.fd,
+            perf_event::PERF_EVENT_IOC_DISABLE,
+            perf_event::PERF_IOC_FLAG_GROUP as i32,
+        );
+        if ret == -1 {
+            return Err(Error::last_os_error());
+        }
+        Ok(())
+    }
 }
 
 impl<'a> AbstractPerfCounter for PerfCounter {
